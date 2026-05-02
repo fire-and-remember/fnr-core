@@ -2,4 +2,9 @@ dependencies {
     api project(':fnr-core')
     implementation 'org.springframework.data:spring-data-mongodb:4.2.5'
     compileOnly 'org.springframework.boot:spring-boot-autoconfigure:3.2.5'
+    testImplementation 'de.flapdoodle.embed:de.flapdoodle.embed.mongo.spring31x:4.11.0'
+    testImplementation 'org.mongodb:mongodb-driver-sync:5.1.0'
+    testImplementation 'org.springframework.boot:spring-boot-test-autoconfigure:3.2.5'
+    testImplementation 'org.springframework.boot:spring-boot-test:3.2.5'
+    testImplementation 'org.springframework:spring-test:6.1.6'
 }
