@@ -11,14 +11,14 @@ Turns fire-and-forget into fire-and-remember — a `ticketId` is all you need to
 
 **With Redis**
 ```gradle
-implementation 'io.fnr:fnr-spring'
-implementation 'io.fnr:fnr-store-redis'
+implementation 'io.github.fire-and-remember:fnr-spring:0.1.0'
+implementation 'io.github.fire-and-remember:fnr-store-redis:0.1.0'
 ```
 
 **With JDBC**
 ```gradle
-implementation 'io.fnr:fnr-spring'
-implementation 'io.fnr:fnr-store-jdbc'
+implementation 'io.github.fire-and-remember:fnr-spring:0.1.0'
+implementation 'io.github.fire-and-remember:fnr-store-jdbc:0.1.0'
 ```
 
 > `fnr-spring` includes `fnr-core`, so you only need two dependencies.

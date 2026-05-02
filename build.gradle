@@ -4,7 +4,7 @@ plugins {
 }
 
 allprojects {
-    group = 'io.fnr'
+    group = 'io.github.fire-and-remember'
     version = '0.1.0-SNAPSHOT'
     repositories { mavenCentral() }
 }
