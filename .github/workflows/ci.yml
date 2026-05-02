@@ -8,7 +8,7 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     steps:
       - uses: actions/checkout@v4
@@ -30,4 +30,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: test-reports
-          path: '**/build/reports/tests/'
+          path: |
+            **/build/reports/tests/
+            **/build/reports/problems/
