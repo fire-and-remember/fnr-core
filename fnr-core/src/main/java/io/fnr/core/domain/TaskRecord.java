@@ -7,11 +7,11 @@ public class TaskRecord {
     private final String jobName;
     private final long timeoutSeconds;
     private final Instant startedAt;
-    private TaskStatus status;
-    private Instant completedAt;
-    private String resultPayload;
-    private String paramPayload;
-    private String errorMessage;
+    private volatile TaskStatus status;
+    private volatile Instant completedAt;
+    private volatile String resultPayload;
+    private volatile String paramPayload;
+    private volatile String errorMessage;
 
     private TaskRecord(Builder b) {
         this.ticketId     = b.ticketId;
