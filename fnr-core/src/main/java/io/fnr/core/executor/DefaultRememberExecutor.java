@@ -11,8 +11,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
 import java.util.UUID;
 import java.util.concurrent.*;
+import java.util.logging.Logger;
 
 public class DefaultRememberExecutor implements RememberExecutor {
+
+    private static final Logger log = Logger.getLogger(DefaultRememberExecutor.class.getName());
 
     private final RememberStore store;
     private final FnrConfig config;
@@ -39,6 +42,10 @@ public class DefaultRememberExecutor implements RememberExecutor {
 
     @Override
     public <T> Ticket<T> submit(String jobName, long timeoutSeconds, Object[] params, Class<T> resultType, Callable<T> task) {
+        if (jobName == null || jobName.isBlank()) throw new IllegalArgumentException("jobName must not be blank");
+        if (timeoutSeconds <= 0) throw new IllegalArgumentException("timeoutSeconds must be greater than 0");
+        if (task == null) throw new IllegalArgumentException("task must not be null");
+
         String paramPayload = serializeParams(params);
 
         String ticketId = UUID.randomUUID().toString();
@@ -70,7 +77,8 @@ public class DefaultRememberExecutor implements RememberExecutor {
             future.cancel(true);
             store.updateFailed(ticketId, "Task timed out");
         } catch (Exception e) {
-            store.updateFailed(ticketId, e.getMessage());
+            log.warning("Task failed [ticketId=" + ticketId + "]: " + e.getMessage());
+            store.updateFailed(ticketId, "Task execution failed");
         }
     }
 
