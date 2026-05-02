@@ -8,12 +8,29 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
 
+/**
+ * In-memory {@link RememberStore} implementation for local development and testing.
+ *
+ * <p><strong>Not for production use.</strong> All task records are stored in the JVM heap
+ * and are lost on every application restart — which defeats the core purpose of this library.
+ * A {@code WARNING} log is printed at startup as a reminder.
+ *
+ * <pre>{@code
+ * @Bean
+ * public RememberStore rememberStore() {
+ *     return new InMemoryRememberStore();
+ * }
+ * }</pre>
+ */
 public class InMemoryRememberStore implements RememberStore {
 
     private static final Logger log = Logger.getLogger(InMemoryRememberStore.class.getName());
 
     private final ConcurrentHashMap<String, TaskRecord> store = new ConcurrentHashMap<>();
 
+    /**
+     * Creates a new in-memory store and logs a warning about its limited durability.
+     */
     public InMemoryRememberStore() {
         log.warning("InMemoryRememberStore is for local/testing use only. All data will be lost on restart.");
     }
