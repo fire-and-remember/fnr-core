@@ -1,0 +1,5 @@
+dependencies {
+    api project(':fnr-core')
+    implementation 'org.springframework.data:spring-data-mongodb:4.2.5'
+    compileOnly 'org.springframework.boot:spring-boot-autoconfigure:3.2.5'
+}
