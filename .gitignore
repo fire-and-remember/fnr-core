@@ -1,0 +1,19 @@
+# Build outputs
+build/
+out/
+*.class
+
+# Gradle
+.gradle/
+gradle-wrapper.jar
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# Dev planning (not for version control)
+dev-plan.md
+
+# Claude Code
+.claude/

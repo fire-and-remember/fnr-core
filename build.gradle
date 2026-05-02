@@ -1,0 +1,82 @@
+plugins {
+    id 'java-library'
+    id 'io.github.gradle-nexus.publish-plugin' version '2.0.0'
+}
+
+allprojects {
+    group = 'io.fnr'
+    version = '0.1.0-SNAPSHOT'
+    repositories { mavenCentral() }
+}
+
+subprojects {
+    apply plugin: 'java-library'
+    apply plugin: 'maven-publish'
+    apply plugin: 'signing'
+
+    java {
+        sourceCompatibility = JavaVersion.VERSION_21
+        targetCompatibility = JavaVersion.VERSION_21
+        withJavadocJar()
+        withSourcesJar()
+    }
+
+    dependencies {
+        testImplementation 'org.junit.jupiter:junit-jupiter:5.10.2'
+        testImplementation 'org.assertj:assertj-core:3.25.3'
+        testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    }
+
+    test { useJUnitPlatform() }
+
+    publishing {
+        publications {
+            mavenJava(MavenPublication) {
+                from components.java
+                pom {
+                    name = project.name
+                    description = 'FireAndRemember — track and retrieve async task results reliably with just a ticketId'
+                    url = 'https://github.com/fire-and-remember/fnr-core'
+                    licenses {
+                        license {
+                            name = 'The Apache License, Version 2.0'
+                            url = 'https://www.apache.org/licenses/LICENSE-2.0.txt'
+                        }
+                    }
+                    developers {
+                        developer {
+                            id = 'fnr'
+                            name = 'fnr'
+                            email = 'gusdnddk111@gmail.com'
+                        }
+                    }
+                    scm {
+                        connection = 'scm:git:git://github.com/fire-and-remember/fnr-core.git'
+                        developerConnection = 'scm:git:ssh://github.com/fire-and-remember/fnr-core.git'
+                        url = 'https://github.com/fire-and-remember/fnr-core'
+                    }
+                }
+            }
+        }
+    }
+
+    signing {
+        def gpgKey = System.getenv('GPG_PRIVATE_KEY')
+        def gpgPassphrase = System.getenv('GPG_PASSPHRASE')
+        if (gpgKey) {
+            useInMemoryPgpKeys(gpgKey, gpgPassphrase)
+            sign publishing.publications.mavenJava
+        }
+    }
+}
+
+nexusPublishing {
+    repositories {
+        sonatype {
+            nexusUrl = uri('https://s01.oss.sonatype.org/service/local/')
+            snapshotRepositoryUrl = uri('https://s01.oss.sonatype.org/content/repositories/snapshots/')
+            username = System.getenv('OSSRH_USERNAME')
+            password = System.getenv('OSSRH_PASSWORD')
+        }
+    }
+}

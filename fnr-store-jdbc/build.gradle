@@ -1,0 +1,7 @@
+dependencies {
+    api project(':fnr-core')
+    implementation 'org.springframework:spring-jdbc:6.1.6'
+    compileOnly 'org.springframework.boot:spring-boot-autoconfigure:3.2.5'
+    testImplementation 'com.h2database:h2:2.2.224'
+    testImplementation 'org.springframework:spring-test:6.1.6'
+}

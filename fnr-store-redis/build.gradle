@@ -1,0 +1,5 @@
+dependencies {
+    api project(':fnr-core')
+    implementation 'org.redisson:redisson:3.29.0'
+    compileOnly 'org.springframework.boot:spring-boot-autoconfigure:3.2.5'
+}
