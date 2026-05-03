@@ -36,6 +36,7 @@ implementation 'io.github.fire-and-remember:fnr-store-mongo:0.1.0'
 ```java
 // 1. Annotate the method
 @Remember(jobName = "send-email", timeout = 30, timeoutUnit = TimeUnit.SECONDS)
+@Transactional
 public Ticket<EmailResult> sendEmail(EmailRequest request) { ... }
 
 // 2. Call it — receive only a Ticket
