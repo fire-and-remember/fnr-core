@@ -41,7 +41,11 @@ public class RememberAspect {
         long timeoutSeconds = annotation.timeoutUnit().toSeconds(annotation.timeout());
         return executor.submit(annotation.jobName(), timeoutSeconds, joinPoint.getArgs(), resultType, () -> {
             try {
-                return joinPoint.proceed();
+                Object proceeded = joinPoint.proceed();
+                if (proceeded instanceof Ticket<?> ticket) {
+                    return (Object) ticket.getValue();
+                }
+                return null;
             } catch (Throwable t) {
                 throw new Exception(t);
             }
