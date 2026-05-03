@@ -7,11 +7,14 @@ import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.reflect.MethodSignature;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 
 @Aspect
+@Order(Ordered.LOWEST_PRECEDENCE - 1)
 public class RememberAspect {
 
     private final RememberExecutor executor;
