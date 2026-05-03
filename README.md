@@ -34,10 +34,13 @@ implementation 'io.github.fire-and-remember:fnr-store-mongo:0.1.0'
 ## Basic Usage
 
 ```java
-// 1. Annotate the method
+// 1. Annotate the method — return Ticket.of(result) to persist the result
 @Remember(jobName = "send-email", timeout = 30, timeoutUnit = TimeUnit.SECONDS)
 @Transactional
-public Ticket<EmailResult> sendEmail(EmailRequest request) { ... }
+public Ticket<EmailResult> sendEmail(EmailRequest request) {
+    EmailResult result = mailClient.send(request);
+    return Ticket.of(result);
+}
 
 // 2. Call it — receive only a Ticket
 Ticket<EmailResult> ticket = emailService.sendEmail(request);
