@@ -21,6 +21,12 @@ implementation 'io.github.fire-and-remember:fnr-spring:0.1.0'
 implementation 'io.github.fire-and-remember:fnr-store-jdbc:0.1.0'
 ```
 
+**With MongoDB**
+```gradle
+implementation 'io.github.fire-and-remember:fnr-spring:0.1.0'
+implementation 'io.github.fire-and-remember:fnr-store-mongo:0.1.0'
+```
+
 > `fnr-spring` includes `fnr-core`, so you only need two dependencies.
 
 ---
@@ -30,6 +36,7 @@ implementation 'io.github.fire-and-remember:fnr-store-jdbc:0.1.0'
 ```java
 // 1. Annotate the method
 @Remember(jobName = "send-email", timeout = 30, timeoutUnit = TimeUnit.SECONDS)
+@Transactional
 public Ticket<EmailResult> sendEmail(EmailRequest request) { ... }
 
 // 2. Call it — receive only a Ticket
@@ -163,6 +170,11 @@ TTL is optional. When not set, records persist indefinitely.
 
 **JDBC** does not support TTL. Records persist until manually deleted. Implement your own cleanup job if needed.
 
+**MongoDB** does not have a built-in TTL option in this library. Use a MongoDB TTL index on the `completedAt` field if needed:
+```javascript
+db.fnr_tasks.createIndex({ "completedAt": 1 }, { expireAfterSeconds: 3600 })
+```
+
 ---
 
 ## In-Memory Store (local/testing only)
@@ -188,5 +200,6 @@ fire-and-remember/
 ├── fnr-core            # Pure Java 21, no external dependencies (Jackson compileOnly)
 ├── fnr-store-jdbc      # Spring JDBC implementation
 ├── fnr-store-redis     # Redisson implementation (TTL support)
+├── fnr-store-mongo     # Spring Data MongoDB implementation
 └── fnr-spring          # Spring Boot AutoConfiguration (includes fnr-core)
 ```

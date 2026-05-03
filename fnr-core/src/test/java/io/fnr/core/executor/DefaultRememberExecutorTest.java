@@ -63,7 +63,7 @@ class DefaultRememberExecutorTest {
 
         TicketResult<String> result = executor.getResult(ticket.getTicketId(), String.class);
         assertThat(result.getStatus()).isEqualTo(TaskStatus.FAILED);
-        assertThat(result.getErrorMessage()).contains("boom");
+        assertThat(result.getErrorMessage()).isEqualTo("Task execution failed");
     }
 
     @Test
