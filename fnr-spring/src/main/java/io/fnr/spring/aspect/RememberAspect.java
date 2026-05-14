@@ -39,7 +39,8 @@ public class RememberAspect {
         Class<Object> resultType = (Class<Object>) genericReturnType.getActualTypeArguments()[0];
 
         long timeoutSeconds = annotation.timeoutUnit().toSeconds(annotation.timeout());
-        return executor.submit(annotation.jobName(), timeoutSeconds, joinPoint.getArgs(), resultType, () -> {
+        return executor.submit(annotation.jobName(), timeoutSeconds, joinPoint.getArgs(), resultType,
+                annotation.storeResult(), annotation.storeParameters(), () -> {
             try {
                 Object proceeded = joinPoint.proceed();
                 if (proceeded instanceof Ticket<?> ticket) {

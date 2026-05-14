@@ -68,10 +68,7 @@ Uses one virtual thread per task. Recommended for most use cases.
 ```java
 @Bean
 public FnrConfig fnrConfig() {
-    return VirtualThreadFnrConfig.builder()
-        .storeParameters(false)  // persist method parameters (default: false)
-        .storeResult(true)       // persist the result (default: true)
-        .build();
+    return VirtualThreadFnrConfig.builder().build();
 }
 ```
 
@@ -83,8 +80,6 @@ Use when you need to cap concurrent task execution — e.g., to protect a downst
 @Bean
 public FnrConfig fnrConfig() {
     return ThreadPoolFnrConfig.builder()
-        .storeParameters(false)
-        .storeResult(true)
         .threadPoolSize(20)      // max concurrent tasks (default: 10)
         .build();
 }
@@ -96,8 +91,6 @@ public FnrConfig fnrConfig() {
 
 ```yaml
 fnr:
-  store-parameters: false     # persist method parameters (default: false)
-  store-result: true          # persist the result (default: true)
   use-virtual-threads: true   # set to false to use a fixed thread pool (default: true)
   thread-pool-size: 10        # only used when use-virtual-threads is false (default: 10)
 ```
@@ -106,10 +99,11 @@ fnr:
 
 ## Behavior Notes
 
-**`storeResult: false`** — `getResult()` still returns a `TicketResult` with status `SUCCESS`, but `getResult().getValue()` is `null`.
-Use this when you only need to track completion, not the actual return value.
+**`storeResult`** is configured per-method on the `@Remember` annotation (default: `true`).
+When `false`, `getResult().getValue()` is `null` but status is still tracked.
 
-**`storeParameters: false`** — `getResult().getParamPayload()` returns `null`.
+**`storeParameters`** is configured per-method on the `@Remember` annotation (default: `false`).
+When `true`, method arguments are JSON-serialized and retrievable via `getResult().getParamPayload()`.
 
 ---
 

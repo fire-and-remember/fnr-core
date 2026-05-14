@@ -32,15 +32,10 @@ public class FnrAutoConfiguration implements InitializingBean, DisposableBean {
     public FnrConfig fnrConfig(FnrProperties props) {
         if (!props.isUseVirtualThreads()) {
             return ThreadPoolFnrConfig.builder()
-                .storeParameters(props.isStoreParameters())
-                .storeResult(props.isStoreResult())
                 .threadPoolSize(props.getThreadPoolSize())
                 .build();
         }
-        return VirtualThreadFnrConfig.builder()
-            .storeParameters(props.isStoreParameters())
-            .storeResult(props.isStoreResult())
-            .build();
+        return VirtualThreadFnrConfig.builder().build();
     }
 
     @Bean

@@ -20,34 +20,39 @@ public class DefaultRememberExecutor implements RememberExecutor {
     private final RememberStore store;
     private final FnrConfig config;
     private final ExecutorService executorService;
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper;
 
     public DefaultRememberExecutor(RememberStore store, FnrConfig config) {
-        if (config.isStoreResult() || config.isStoreParameters()) {
-            try {
-                Class.forName("com.fasterxml.jackson.databind.ObjectMapper");
-            } catch (ClassNotFoundException e) {
-                throw new IllegalStateException(
-                    "jackson-databind is required when storeResult or storeParameters is enabled. "
-                    + "Add 'com.fasterxml.jackson.core:jackson-databind' to your dependencies."
-                );
-            }
-        }
         this.store = store;
         this.config = config;
         this.executorService = (config instanceof ThreadPoolFnrConfig tpConfig)
             ? Executors.newFixedThreadPool(tpConfig.getThreadPoolSize())
             : Executors.newVirtualThreadPerTaskExecutor();
+        this.objectMapper = createObjectMapperIfAvailable();
+    }
+
+    private static ObjectMapper createObjectMapperIfAvailable() {
+        try {
+            return new ObjectMapper();
+        } catch (NoClassDefFoundError e) {
+            return null;
+        }
     }
 
     @Override
-    public <T> Ticket<T> submit(String jobName, long timeoutSeconds, Object[] params, Class<T> resultType, Callable<T> task) {
+    public <T> Ticket<T> submit(String jobName, long timeoutSeconds, Object[] params, Class<T> resultType,
+                                boolean storeResult, boolean storeParameters, Callable<T> task) {
         if (jobName == null || jobName.isBlank()) throw new IllegalArgumentException("jobName must not be blank");
         if (timeoutSeconds <= 0) throw new IllegalArgumentException("timeoutSeconds must be greater than 0");
         if (task == null) throw new IllegalArgumentException("task must not be null");
+        if ((storeResult || storeParameters) && objectMapper == null) {
+            throw new IllegalStateException(
+                "jackson-databind is required when storeResult or storeParameters is enabled. "
+                + "Add 'com.fasterxml.jackson.core:jackson-databind' to your dependencies."
+            );
+        }
 
-        String paramPayload = serializeParams(params);
-
+        String paramPayload = serializeParams(params, storeParameters);
         String ticketId = UUID.randomUUID().toString();
 
         TaskRecord record = TaskRecord.builder()
@@ -61,17 +66,17 @@ public class DefaultRememberExecutor implements RememberExecutor {
 
         store.save(record);
 
-        executorService.submit(() -> executeWithTracking(ticketId, timeoutSeconds, task));
+        executorService.submit(() -> executeWithTracking(ticketId, timeoutSeconds, storeResult, task));
 
         return new Ticket<>(ticketId, jobName);
     }
 
-    private <T> void executeWithTracking(String ticketId, long timeoutSeconds, Callable<T> task) {
+    private <T> void executeWithTracking(String ticketId, long timeoutSeconds, boolean storeResult, Callable<T> task) {
         store.updateStatus(ticketId, TaskStatus.RUNNING);
         Future<T> future = executorService.submit(task);
         try {
             T result = future.get(timeoutSeconds, TimeUnit.SECONDS);
-            String payload = config.isStoreResult() ? objectMapper.writeValueAsString(result) : null;
+            String payload = storeResult ? objectMapper.writeValueAsString(result) : null;
             store.updateSuccess(ticketId, payload);
         } catch (TimeoutException e) {
             future.cancel(true);
@@ -89,7 +94,6 @@ public class DefaultRememberExecutor implements RememberExecutor {
 
         String params = record.getParamPayload();
 
-        // Lazy Detection: handles the case where the pod died mid-execution
         if (record.getStatus() == TaskStatus.RUNNING) {
             Instant deadline = record.getStartedAt().plusSeconds(record.getTimeoutSeconds());
             if (Instant.now().isAfter(deadline)) {
@@ -103,7 +107,7 @@ public class DefaultRememberExecutor implements RememberExecutor {
             case RUNNING -> TicketResult.<T>running().withParamPayload(params);
             case FAILED  -> TicketResult.<T>failed(record.getErrorMessage()).withParamPayload(params);
             case SUCCESS -> {
-                if (config.isStoreResult() && record.getResultPayload() != null && resultType != Void.class) {
+                if (record.getResultPayload() != null && resultType != Void.class) {
                     try {
                         yield TicketResult.success(objectMapper.readValue(record.getResultPayload(), resultType))
                             .withParamPayload(params);
@@ -116,8 +120,8 @@ public class DefaultRememberExecutor implements RememberExecutor {
         };
     }
 
-    private String serializeParams(Object[] params) {
-        if (!config.isStoreParameters() || params == null || params.length == 0) return null;
+    private String serializeParams(Object[] params, boolean storeParameters) {
+        if (!storeParameters || params == null || params.length == 0) return null;
         try {
             return objectMapper.writeValueAsString(params);
         } catch (JsonProcessingException e) {

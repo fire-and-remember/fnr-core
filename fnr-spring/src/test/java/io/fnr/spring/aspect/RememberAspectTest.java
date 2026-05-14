@@ -45,8 +45,7 @@ class RememberAspectTest {
     @BeforeEach
     void setUp() {
         store = new InMemoryStore();
-        var config = VirtualThreadFnrConfig.builder().storeResult(true).build();
-        var executor = new DefaultRememberExecutor(store, config);
+        var executor = new DefaultRememberExecutor(store, VirtualThreadFnrConfig.builder().build());
         var aspect = new RememberAspect(executor);
 
         AspectJProxyFactory factory = new AspectJProxyFactory(new SampleService());
@@ -78,8 +77,7 @@ class RememberAspectTest {
             public String badMethod() { return "nope"; }
         };
 
-        var executor = new DefaultRememberExecutor(store,
-            VirtualThreadFnrConfig.builder().build());
+        var executor = new DefaultRememberExecutor(store, VirtualThreadFnrConfig.builder().build());
         var aspect = new RememberAspect(executor);
 
         AspectJProxyFactory factory = new AspectJProxyFactory(badService);

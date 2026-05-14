@@ -53,4 +53,27 @@ public @interface Remember {
      * @return the time unit
      */
     TimeUnit timeoutUnit() default TimeUnit.SECONDS;
+
+    /**
+     * Whether to serialize and persist the task's return value.
+     *
+     * <p>When {@code true}, the value returned via {@link io.fnr.core.domain.Ticket#of(Object)}
+     * is JSON-serialized and retrievable via {@link io.fnr.core.domain.TicketResult#getValue()}.
+     * When {@code false}, {@code getValue()} always returns {@code null} but status is still tracked.
+     * Defaults to {@code true}.
+     *
+     * @return {@code true} if result persistence is enabled
+     */
+    boolean storeResult() default true;
+
+    /**
+     * Whether to serialize and persist the method's parameters.
+     *
+     * <p>When {@code true}, the original method arguments are JSON-serialized and retrievable
+     * via {@link io.fnr.core.domain.TicketResult#getParamPayload()}.
+     * Defaults to {@code false}.
+     *
+     * @return {@code true} if parameter persistence is enabled
+     */
+    boolean storeParameters() default false;
 }
