@@ -11,13 +11,11 @@ import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
 import java.util.Optional;
-import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.*;
 
 class DefaultRememberExecutorTest {
 
-    // Minimal in-memory store for testing
     static class InMemoryStore implements RememberStore {
         TaskRecord saved;
 
@@ -28,24 +26,18 @@ class DefaultRememberExecutorTest {
         @Override public void updateFailed(String id, String msg)        { if (saved != null) { saved.setStatus(TaskStatus.FAILED); saved.setErrorMessage(msg); } }
     }
 
-    static class UnserializableResult {
-        // no-arg constructor missing, Jackson can't deserialize
-        public UnserializableResult(String required) {}
-    }
-
     InMemoryStore store;
     DefaultRememberExecutor executor;
 
     @BeforeEach
     void setUp() {
         store = new InMemoryStore();
-        FnrConfig config = VirtualThreadFnrConfig.builder().storeResult(true).build();
-        executor = new DefaultRememberExecutor(store, config);
+        executor = new DefaultRememberExecutor(store, VirtualThreadFnrConfig.builder().build());
     }
 
     @Test
     void success_storesResultAndTransitionsToSuccess() throws Exception {
-        var ticket = executor.submit("job", 5, new Object[0], String.class, () -> "hello");
+        var ticket = executor.submit("job", 5, new Object[0], String.class, true, false, () -> "hello");
 
         awaitCompletion();
 
@@ -56,7 +48,7 @@ class DefaultRememberExecutorTest {
 
     @Test
     void failure_storesErrorAndTransitionsToFailed() throws Exception {
-        var ticket = executor.submit("job", 5, new Object[0], String.class,
+        var ticket = executor.submit("job", 5, new Object[0], String.class, true, false,
             () -> { throw new RuntimeException("boom"); });
 
         awaitCompletion();
@@ -68,7 +60,7 @@ class DefaultRememberExecutorTest {
 
     @Test
     void timeout_transitionsToFailed() throws Exception {
-        var ticket = executor.submit("job", 1, new Object[0], String.class, () -> {
+        var ticket = executor.submit("job", 1, new Object[0], String.class, true, false, () -> {
             Thread.sleep(5000);
             return "never";
         });
@@ -97,11 +89,7 @@ class DefaultRememberExecutorTest {
 
     @Test
     void storeResultFalse_resultIsNull() throws Exception {
-        store = new InMemoryStore();
-        FnrConfig config = VirtualThreadFnrConfig.builder().storeResult(false).build();
-        executor = new DefaultRememberExecutor(store, config);
-
-        var ticket = executor.submit("job", 5, new Object[0], String.class, () -> "ignored");
+        var ticket = executor.submit("job", 5, new Object[0], String.class, false, false, () -> "ignored");
         awaitCompletion();
 
         TicketResult<String> result = executor.getResult(ticket.getTicketId(), String.class);
@@ -110,12 +98,8 @@ class DefaultRememberExecutorTest {
     }
 
     @Test
-    void storeParameters_serializesParamsToRecord() throws Exception {
-        store = new InMemoryStore();
-        FnrConfig config = VirtualThreadFnrConfig.builder().storeParameters(true).build();
-        executor = new DefaultRememberExecutor(store, config);
-
-        executor.submit("job", 5, new Object[]{"param1", 42}, String.class, () -> "ok");
+    void storeParametersTrue_serializesParamsToRecord() throws Exception {
+        executor.submit("job", 5, new Object[]{"param1", 42}, String.class, true, true, () -> "ok");
 
         assertThat(store.saved.getParamPayload())
             .isNotNull()
@@ -141,26 +125,17 @@ class DefaultRememberExecutorTest {
 
     @Test
     void unserializableParam_throwsImmediately() {
-        store = new InMemoryStore();
-        FnrConfig config = VirtualThreadFnrConfig.builder().storeParameters(true).build();
-        executor = new DefaultRememberExecutor(store, config);
-
-        Object unserializable = new Object() {
-            // anonymous class — Jackson can't serialize
-        };
+        Object unserializable = new Object() {};
 
         assertThatThrownBy(() ->
-            executor.submit("job", 5, new Object[]{unserializable}, String.class, () -> "ok")
+            executor.submit("job", 5, new Object[]{unserializable}, String.class, true, true, () -> "ok")
         ).isInstanceOf(IllegalArgumentException.class)
          .hasMessageContaining("Failed to serialize parameters");
     }
 
-    private static final int AWAIT_POLL_INTERVAL_MS = 100;
-    private static final int AWAIT_MAX_ATTEMPTS     = 50;
-
     @Test
     void waitForResult_blocksUntilSuccess() throws Exception {
-        var ticket = executor.submit("job", 5, new Object[0], String.class, () -> {
+        var ticket = executor.submit("job", 5, new Object[0], String.class, true, false, () -> {
             Thread.sleep(300);
             return "done";
         });
@@ -172,7 +147,7 @@ class DefaultRememberExecutorTest {
 
     @Test
     void waitForResult_returnsImmediatelyIfAlreadyCompleted() throws Exception {
-        var ticket = executor.submit("job", 5, new Object[0], String.class, () -> "instant");
+        var ticket = executor.submit("job", 5, new Object[0], String.class, true, false, () -> "instant");
         awaitCompletion();
 
         long start = System.currentTimeMillis();
@@ -196,6 +171,9 @@ class DefaultRememberExecutorTest {
         TicketResult<String> result = executor.waitForResult("stuck-id", String.class, 1);
         assertThat(result.getStatus()).isEqualTo(TaskStatus.RUNNING);
     }
+
+    private static final int AWAIT_POLL_INTERVAL_MS = 100;
+    private static final int AWAIT_MAX_ATTEMPTS     = 50;
 
     private void awaitCompletion() throws InterruptedException {
         for (int i = 0; i < AWAIT_MAX_ATTEMPTS; i++) {

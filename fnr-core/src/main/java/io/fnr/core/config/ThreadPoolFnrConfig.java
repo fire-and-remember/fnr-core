@@ -15,7 +15,6 @@ package io.fnr.core.config;
  * public FnrConfig fnrConfig() {
  *     return ThreadPoolFnrConfig.builder()
  *         .threadPoolSize(20)
- *         .storeResult(true)
  *         .build();
  * }
  * }</pre>
@@ -25,7 +24,6 @@ public class ThreadPoolFnrConfig extends FnrConfig {
     private final int threadPoolSize;
 
     private ThreadPoolFnrConfig(Builder builder) {
-        super(builder.storeParameters, builder.storeResult);
         this.threadPoolSize = builder.threadPoolSize;
     }
 
@@ -42,25 +40,7 @@ public class ThreadPoolFnrConfig extends FnrConfig {
      * Builder for {@link ThreadPoolFnrConfig}.
      */
     public static class Builder {
-        private boolean storeParameters = false;
-        private boolean storeResult     = true;
-        private int threadPoolSize      = 10;
-
-        /**
-         * Whether to persist method parameters as JSON. Defaults to {@code false}.
-         *
-         * @param enabled {@code true} to enable parameter storage
-         * @return this builder
-         */
-        public Builder storeParameters(boolean enabled) { this.storeParameters = enabled; return this; }
-
-        /**
-         * Whether to persist the task result as JSON. Defaults to {@code true}.
-         *
-         * @param enabled {@code false} to disable result storage (status is still tracked)
-         * @return this builder
-         */
-        public Builder storeResult(boolean enabled)     { this.storeResult = enabled; return this; }
+        private int threadPoolSize = 10;
 
         /**
          * Maximum number of tasks to execute concurrently. Defaults to {@code 10}.
@@ -68,9 +48,9 @@ public class ThreadPoolFnrConfig extends FnrConfig {
          * @param size the thread pool size; must be greater than 0
          * @return this builder
          */
-        public Builder threadPoolSize(int size)          { this.threadPoolSize = size; return this; }
+        public Builder threadPoolSize(int size) { this.threadPoolSize = size; return this; }
 
         /** @return a new {@link ThreadPoolFnrConfig} */
-        public ThreadPoolFnrConfig build()        { return new ThreadPoolFnrConfig(this); }
+        public ThreadPoolFnrConfig build() { return new ThreadPoolFnrConfig(this); }
     }
 }

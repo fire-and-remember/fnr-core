@@ -31,11 +31,47 @@ implementation 'io.github.fire-and-remember:fnr-store-mongo:0.2.0'
 
 ---
 
+## How It Works
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Bean as @Remember Method
+    participant Aspect as RememberAspect (AOP)
+    participant Executor as DefaultRememberExecutor
+    participant Store as RememberStore (DB / Redis / Mongo)
+
+    Client->>Bean: service.doTask(request)
+    Bean->>Aspect: intercept
+    Aspect->>Executor: submit(jobName, timeout, storeResult, ...)
+    Executor->>Store: save(TaskRecord { status = PENDING })
+    Executor-->>Client: Ticket { ticketId } — returned immediately
+
+    Note over Client: Store ticketId, continue other work
+
+    par Async execution
+        Executor->>Store: updateStatus(RUNNING)
+        Executor->>Bean: proceed() — actual method body runs
+        Bean-->>Executor: Ticket.of(result)
+        Executor->>Store: updateSuccess(result payload)
+    end
+
+    Note over Client: Retrieve result later
+
+    Client->>Executor: getResult(ticketId, Result.class)
+    Executor->>Store: findByTicketId(ticketId)
+    Store-->>Executor: TaskRecord { status = SUCCESS, payload }
+    Executor-->>Client: TicketResult { status = SUCCESS, value = Result }
+```
+
+---
+
 ## Basic Usage
 
 ```java
 // 1. Annotate the method — return Ticket.of(result) to persist the result
-@Remember(jobName = "send-email", timeout = 30, timeoutUnit = TimeUnit.SECONDS)
+@Remember(jobName = "send-email", timeout = 30, timeoutUnit = TimeUnit.SECONDS,
+          storeResult = true, storeParameters = false)
 @Transactional
 public Ticket<EmailResult> sendEmail(EmailRequest request) {
     EmailResult result = mailClient.send(request);
@@ -68,10 +104,7 @@ Uses one virtual thread per task. Recommended for most use cases.
 ```java
 @Bean
 public FnrConfig fnrConfig() {
-    return VirtualThreadFnrConfig.builder()
-        .storeParameters(false)  // persist method parameters (default: false)
-        .storeResult(true)       // persist the result (default: true)
-        .build();
+    return VirtualThreadFnrConfig.builder().build();
 }
 ```
 
@@ -83,8 +116,6 @@ Use when you need to cap concurrent task execution — e.g., to protect a downst
 @Bean
 public FnrConfig fnrConfig() {
     return ThreadPoolFnrConfig.builder()
-        .storeParameters(false)
-        .storeResult(true)
         .threadPoolSize(20)      // max concurrent tasks (default: 10)
         .build();
 }
@@ -96,8 +127,6 @@ public FnrConfig fnrConfig() {
 
 ```yaml
 fnr:
-  store-parameters: false     # persist method parameters (default: false)
-  store-result: true          # persist the result (default: true)
   use-virtual-threads: true   # set to false to use a fixed thread pool (default: true)
   thread-pool-size: 10        # only used when use-virtual-threads is false (default: 10)
 ```
@@ -106,10 +135,11 @@ fnr:
 
 ## Behavior Notes
 
-**`storeResult: false`** — `getResult()` still returns a `TicketResult` with status `SUCCESS`, but `getResult().getValue()` is `null`.
-Use this when you only need to track completion, not the actual return value.
+**`storeResult`** is configured per-method on the `@Remember` annotation (default: `true`).
+When `false`, `getResult().getValue()` is `null` but status is still tracked.
 
-**`storeParameters: false`** — `getResult().getParamPayload()` returns `null`.
+**`storeParameters`** is configured per-method on the `@Remember` annotation (default: `false`).
+When `true`, method arguments are JSON-serialized and retrievable via `getResult().getParamPayload()`.
 
 ---
 
