@@ -31,6 +31,41 @@ implementation 'io.github.fire-and-remember:fnr-store-mongo:0.2.0'
 
 ---
 
+## API Flow
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Bean as @Remember Method
+    participant Aspect as RememberAspect (AOP)
+    participant Executor as DefaultRememberExecutor
+    participant Store as RememberStore (DB / Redis / Mongo)
+
+    Client->>Bean: emailService.sendEmail(request)
+    Bean->>Aspect: intercept
+    Aspect->>Executor: submit(jobName, timeout, storeResult, ...)
+    Executor->>Store: save(TaskRecord { status = PENDING })
+    Executor-->>Client: Ticket { ticketId } — returned immediately
+
+    Note over Client: Store ticketId, continue other work
+
+    par Async execution
+        Executor->>Store: updateStatus(RUNNING)
+        Executor->>Bean: proceed() — actual method body runs
+        Bean-->>Executor: Ticket.of(EmailResult)
+        Executor->>Store: updateSuccess(result payload)
+    end
+
+    Note over Client: Retrieve result later
+
+    Client->>Executor: getResult(ticketId, EmailResult.class)
+    Executor->>Store: findByTicketId(ticketId)
+    Store-->>Executor: TaskRecord { status = SUCCESS, payload }
+    Executor-->>Client: TicketResult { status = SUCCESS, value = EmailResult }
+```
+
+---
+
 ## Basic Usage
 
 ```java
