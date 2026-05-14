@@ -31,7 +31,7 @@ implementation 'io.github.fire-and-remember:fnr-store-mongo:0.2.0'
 
 ---
 
-## API Flow
+## How It Works
 
 ```mermaid
 sequenceDiagram
@@ -41,7 +41,7 @@ sequenceDiagram
     participant Executor as DefaultRememberExecutor
     participant Store as RememberStore (DB / Redis / Mongo)
 
-    Client->>Bean: emailService.sendEmail(request)
+    Client->>Bean: service.doTask(request)
     Bean->>Aspect: intercept
     Aspect->>Executor: submit(jobName, timeout, storeResult, ...)
     Executor->>Store: save(TaskRecord { status = PENDING })
@@ -52,16 +52,16 @@ sequenceDiagram
     par Async execution
         Executor->>Store: updateStatus(RUNNING)
         Executor->>Bean: proceed() — actual method body runs
-        Bean-->>Executor: Ticket.of(EmailResult)
+        Bean-->>Executor: Ticket.of(result)
         Executor->>Store: updateSuccess(result payload)
     end
 
     Note over Client: Retrieve result later
 
-    Client->>Executor: getResult(ticketId, EmailResult.class)
+    Client->>Executor: getResult(ticketId, Result.class)
     Executor->>Store: findByTicketId(ticketId)
     Store-->>Executor: TaskRecord { status = SUCCESS, payload }
-    Executor-->>Client: TicketResult { status = SUCCESS, value = EmailResult }
+    Executor-->>Client: TicketResult { status = SUCCESS, value = Result }
 ```
 
 ---
